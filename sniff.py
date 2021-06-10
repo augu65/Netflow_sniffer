@@ -1,12 +1,15 @@
 from scapy.all import *
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from time import sleep
 import json
 import argparse
 from flow import flow
-
+from hanging_threads import start_monitoring
+start_monitoring(seconds_frozen=10, test_interval=100)
 flows = []
 global_timeout = []
+c = threading.Condition()
+g_flag = 0
 
 class Sniffer(Thread):
   def  __init__(self, interface="eth0"):
@@ -67,9 +70,8 @@ class Sniffer(Thread):
       proto = 'ARP'
     else:
       proto = get_proto(ip_layer.proto)
-
+ 
     f = flow(ip_layer.src, ip_layer.dst,src_port,dst_port,proto,packet.time,len(packet))
-    
     if (not flag and 'TCP' in packet) or ('TCP' not in packet) or (fin_flag and 'TCP' in packet):
       if fin_flag:
         f.fin = True
@@ -80,6 +82,7 @@ class Sniffer(Thread):
       f.source_bytes(len(packet))
       f.direction_forward()
       flows.append(f)
+
 
 
 def close_timeout_flows(flow):
@@ -123,37 +126,29 @@ def in_flow(flow_temp):
     flows.append(flow_temp)
 
 def get_proto(proto):
-  with open('packet_sniffer/protocols.json') as f:
+  with open('Netflow_sniffer/protocols.json') as f:
     data = json.load(f)
     try:
       return data[str(proto)]
     except KeyError:
       return proto
 
-def write_closed_flows(end = False):
-  while True:
-    with open('flows.csv', 'a', newline='')  as output_file:
-      for data in flows:
-        if data.fin or end:
-          if not data.fin and data.proto == 'TCP':
-            if len(data.dir)>1:
-              data.dir = data.dir[:1] + "?" + data.dir[1:]
-            else:
-              data.dir = "?" + data.dir[:1]
-          if data.fin and data.proto == 'TCP':
-            if len(data.dir)>1:
-              data.dir = data.dir[:1] + "-" + data.dir[1:]
-            else:
-              data.dir = "-" + data.dir[:1]
-          if data.proto != 'TCP' and not data.fin:
-            if len(data.dir)>1:
-              data.dir = data.dir[:1] + "-" + data.dir[1:]
-            else:
-              data.dir = '-'+ data.dir[:1]
-          output_file.write(str(data.print_flow()))
-    if end:
-      break
-    sleep(100)
+def write_closed_flows():
+  keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes\n'
+  with open('flows.csv', 'w', newline='') as output_file:
+    output_file.write(keys)
+    for data in flows:
+      if not data.fin and data.proto == 'TCP':
+        if len(data.dir)>1:
+          data.dir = data.dir[:1] + "?" + data.dir[1:]
+        else:
+          data.dir = "?" + data.dir[:1]
+      else:
+        if len(data.dir)>1:
+          data.dir = data.dir[:1] + "-" + data.dir[1:]
+        else:
+          data.dir = "-" + data.dir[:1]
+      output_file.write(str(data.print_flow()))
 
 def main():
   parser = argparse.ArgumentParser()
@@ -169,19 +164,13 @@ def main():
     sniffer = Sniffer()
   print("[*] Start sniffing...")
   sniffer.start()
-  keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes\n'
-  with open('flows.csv', 'w', newline='')  as output_file:
-    output_file.write(keys)
-  close_flow = Thread(target = write_closed_flows)
-  close_flow.start()
   try:
     while True:
       sleep(100)
   except KeyboardInterrupt:
     print("[*] Stop sniffing")
     sniffer.join()
-    close_flow.join()
-    write_closed_flows(args.file,True)
+    write_closed_flows()
 
 if __name__ == "__main__":
   main()
