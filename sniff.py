@@ -1,11 +1,10 @@
 from scapy.all import *
-from threading import Thread, Event, Lock
+from threading import Thread, Event
 from time import sleep
 import json
 import argparse
 from flow import flow
-from hanging_threads import start_monitoring
-start_monitoring(seconds_frozen=10, test_interval=100)
+
 flows = []
 global_timeout = []
 c = threading.Condition()
