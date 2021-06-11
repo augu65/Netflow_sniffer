@@ -1,3 +1,8 @@
+#########################
+#This file sniffs the given interface and analyzes the packets 
+#By: Jonah Stegman
+#########################
+
 from scapy.all import *
 from threading import Thread, Event
 from time import sleep
@@ -5,10 +10,11 @@ import json
 import argparse
 from flow import flow
 
+# holds all the flows
 flows = []
-global_timeout = []
-c = threading.Condition()
-g_flag = 0
+
+#sets timeout for a flow
+global_timeout = 60
 
 class Sniffer(Thread):
   def  __init__(self, interface="eth0"):
@@ -85,7 +91,8 @@ class Sniffer(Thread):
 
 
 def close_timeout_flows(flow):
-  if (time.time() - flow.last_seen)/60 % 60 >=  global_timeout[0]:
+  global global_timeout
+  if (time.time() - flow.last_seen)/60 % 60 >=  global_timeout:
     flow.fin = True
     if flow.proto == 'TCP':
       if len(flow.dir)>1:
@@ -150,12 +157,13 @@ def write_closed_flows():
       output_file.write(str(data.print_flow()))
 
 def main():
+  global global_timeout
   parser = argparse.ArgumentParser()
-  parser.add_argument("--interface", help="select the network interface to sniff", default="Wi-Fi")
+  parser.add_argument("--interface", help="select the network interface to sniff", default="eth0")
   parser.add_argument("--file", help="Enter the filename and path of where the flows will be stored", default="flows.csv")
   parser.add_argument("--timeout", help="set the timeout in Minutes for network connections", type=int, default=60)
   args = parser.parse_args()
-  global_timeout.append(args.timeout)
+  global_timeout =args.timeout
   if(args.interface):
     sniffer = Sniffer(interface=args.interface)
   else:

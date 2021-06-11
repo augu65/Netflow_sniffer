@@ -1,3 +1,8 @@
+#########################
+#This file hold the class flow
+#By: Jonah Stegman
+#########################
+
 
 class flow():
   def  __init__(self, src, dst, src_port,dst_port, proto, start, total_bytes):
