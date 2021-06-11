@@ -13,4 +13,4 @@ python sniff.py [args]
 * --file : Allows for the file/filepath to be specified
 * --timeout : Allows for the timeout of a flow to be specified
 
-###NOTE: The sniff.py file must be run with administrator permissions.
+### NOTE: The sniff.py file must be run with administrator permissions.
