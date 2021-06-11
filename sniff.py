@@ -12,7 +12,8 @@ from flow import flow
 
 # holds all the flows
 flows = []
-
+#holds a dictionary list of all the network protocols
+protocols = []
 #sets timeout for a flow
 global_timeout = 60
 
@@ -132,12 +133,10 @@ def in_flow(flow_temp):
     flows.append(flow_temp)
 
 def get_proto(proto):
-  with open('Netflow_sniffer/protocols.json') as f:
-    data = json.load(f)
-    try:
-      return data[str(proto)]
-    except KeyError:
-      return proto
+  try:
+    return protocols[str(proto)]
+  except KeyError:
+    return proto
 
 def write_closed_flows():
   keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes\n'
@@ -158,6 +157,9 @@ def write_closed_flows():
 
 def main():
   global global_timeout
+  global protocols
+  with open('Netflow_sniffer/protocols.json') as f:
+    protocols = json.load(f)
   parser = argparse.ArgumentParser()
   parser.add_argument("--interface", help="select the network interface to sniff", default="eth0")
   parser.add_argument("--file", help="Enter the filename and path of where the flows will be stored", default="flows.csv")
