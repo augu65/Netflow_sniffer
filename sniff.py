@@ -190,14 +190,18 @@ def main():
     print("Please select a network interface:")
     for key in addrs.keys():
       print(key)
-    interface =input('>')
+    interface = None
+    while interface not in addrs.keys():
+      interface =input('>')
+      if interface not in addrs.keys():
+        print("Invalid Interface")
     sniffer = Sniffer(interface=interface)
 
   analyze = AnalyzeThread()
+  print("[*] Start sniffing...")
+  sniffer.start()
+  analyze.start()
   try:
-    print("[*] Start sniffing...")
-    sniffer.start()
-    analyze.start()
     while True:
       sleep(100)
   except KeyboardInterrupt:
