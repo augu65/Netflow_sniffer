@@ -4,10 +4,12 @@
 #########################
 
 from scapy.all import *
-from threading import Thread, Event
+import threading
 from time import sleep
 import json
 import argparse
+import queue
+import psutil
 from flow import flow
 
 # holds all the flows
@@ -17,15 +19,15 @@ protocols = []
 #sets timeout for a flow
 global_timeout = 60
 
-class Sniffer(Thread):
-  def  __init__(self, interface="eth0"):
-    super().__init__()
+BUF_SIZE = 100
+q = queue.Queue(BUF_SIZE)
 
-    self.daemon = True
-
-    self.socket = None
+class Sniffer(threading.Thread):
+  def __init__(self, interface = None):
+    super(Sniffer,self).__init__()
     self.interface = interface
-    self.stop_sniffer = Event()
+    self.soceket = None
+    self.stop_sniffer = threading.Event()
 
   def run(self):
     try:
@@ -81,14 +83,11 @@ class Sniffer(Thread):
     if (not flag and 'TCP' in packet) or ('TCP' not in packet) or (fin_flag and 'TCP' in packet):
       if fin_flag:
         f.fin = True
-      new_thread = Thread(target = in_flow,args= (f,))
-      new_thread.start()
-      new_thread.join()
+      q.put(f)
     else:
       f.source_bytes(len(packet))
       f.direction_forward()
       flows.append(f)
-
 
 
 def close_timeout_flows(flow):
@@ -101,36 +100,7 @@ def close_timeout_flows(flow):
       else:
         flow.dir = "?" + flow.dir[:1]
 
-def in_flow(flow_temp):
-  flag = False
-  for flow in flows:
-    if not flow.fin:
-      close_timeout_flows(flow)
-      if flow.proto == flow_temp.proto and flow.src == flow_temp.src and flow.dst == flow_temp.dst and flow.src_port == flow_temp.src_port and flow.dst_port == flow_temp.dst_port:
-        flow.total_packets()
-        flow.direction_forward()
-        flow.total_bytes(flow_temp.tot_bytes)
-        flow.source_bytes(flow_temp.tot_bytes)
-        flow.duration(flow_temp.start)
-        flow.last_seen = flow_temp.start
-        flag = True
-        if flow_temp.fin:
-          flow.fin = True
-        break
-      elif flow.proto == flow_temp.proto and flow.src == flow_temp.dst and flow.dst == flow_temp.src and flow.dst_port == flow_temp.src_port and flow.dst_port == flow_temp.src_port:
-        flow.total_packets()
-        flow.direction_backward()
-        flow.total_bytes(flow_temp.tot_bytes)
-        flow.duration(flow_temp.start)
-        flow.last_seen = flow_temp.start
-        flag = True
-        if flow_temp.fin:
-          flow.fin = True
-        break
-  if not flag and not flow_temp.fin:
-    flow_temp.source_bytes(flow_temp.tot_bytes)
-    flow_temp.direction_forward()
-    flows.append(flow_temp)
+
 
 def get_proto(proto):
   try:
@@ -138,9 +108,9 @@ def get_proto(proto):
   except KeyError:
     return proto
 
-def write_closed_flows():
+def write_closed_flows(file):
   keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes\n'
-  with open('flows.csv', 'w', newline='') as output_file:
+  with open(file, 'w', newline='') as output_file:
     output_file.write(keys)
     for data in flows:
       if not data.fin and data.proto == 'TCP':
@@ -155,31 +125,93 @@ def write_closed_flows():
           data.dir = "-" + data.dir[:1]
       output_file.write(str(data.print_flow()))
 
+class AnalyzeThread(threading.Thread):
+  def __init__(self):
+    super(AnalyzeThread,self).__init__()
+    self.stop_sniffer = threading.Event()
+    self.item = None
+    return
+
+  def run(self):
+    analyze = threading.currentThread()
+    while getattr(analyze, "do_run", True) or not q.empty():
+      if not q.empty():
+        self.item = q.get()
+        self.in_flow()
+    return
+
+  def in_flow(self):
+    flag = False
+    for flow in flows:
+      if not flow.fin:
+        close_timeout_flows(flow)
+        if flow.proto == self.item.proto and flow.src == self.item.src and flow.dst == self.item.dst and flow.src_port == self.item.src_port and flow.dst_port == self.item.dst_port:
+          flow.total_packets()
+          flow.direction_forward()
+          flow.total_bytes(self.item.tot_bytes)
+          flow.source_bytes(self.item.tot_bytes)
+          flow.duration(self.item.start)
+          flow.last_seen = self.item.start
+          flag = True
+          if self.item.fin:
+            flow.fin = True
+          break
+        elif flow.proto == self.item.proto and flow.src == self.item.dst and flow.dst == self.item.src and flow.dst_port == self.item.src_port and flow.dst_port == self.item.src_port:
+          flow.total_packets()
+          flow.direction_backward()
+          flow.total_bytes(self.item.tot_bytes)
+          flow.duration(self.item.start)
+          flow.last_seen = self.item.start
+          flag = True
+          if self.item.fin:
+            flow.fin = True
+          break
+    if not flag and not self.item.fin:
+      self.item.source_bytes(self.item.tot_bytes)
+      self.item.direction_forward()
+      flows.append(self.item)
+
+
 def main():
   global global_timeout
   global protocols
-  with open('Netflow_sniffer/protocols.json') as f:
+  with open('./protocols.json') as f:
     protocols = json.load(f)
   parser = argparse.ArgumentParser()
-  parser.add_argument("--interface", help="select the network interface to sniff", default="eth0")
+  parser.add_argument("--interface", help="select the network interface to sniff")
   parser.add_argument("--file", help="Enter the filename and path of where the flows will be stored", default="flows.csv")
   parser.add_argument("--timeout", help="set the timeout in Minutes for network connections", type=int, default=60)
   args = parser.parse_args()
-  global_timeout =args.timeout
-  if(args.interface):
+  global_timeout = args.timeout
+  
+  if args.interface:
     sniffer = Sniffer(interface=args.interface)
   else:
-    print("No Interface provided using default eth0")
-    sniffer = Sniffer()
+    addrs = psutil.net_if_addrs()
+    print("Please select a network interface:")
+    for key in addrs.keys():
+      print(key)
+    interface = None
+    while interface not in addrs.keys():
+      interface =input('>')
+      if interface not in addrs.keys():
+        print("Invalid Interface")
+    sniffer = Sniffer(interface=interface)
+
+  analyze = AnalyzeThread()
   print("[*] Start sniffing...")
   sniffer.start()
+  analyze.start()
   try:
     while True:
       sleep(100)
   except KeyboardInterrupt:
     print("[*] Stop sniffing")
     sniffer.join()
-    write_closed_flows()
+    analyze.do_run = False
+    analyze.join()
+    write_closed_flows(args.file)
+
 
 if __name__ == "__main__":
   main()
