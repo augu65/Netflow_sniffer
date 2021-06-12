@@ -83,7 +83,7 @@ class Sniffer(threading.Thread):
     if (not flag and 'TCP' in packet) or ('TCP' not in packet) or (fin_flag and 'TCP' in packet):
       if fin_flag:
         f.fin = True
-        q.put(f)
+      q.put(f)
     else:
       f.source_bytes(len(packet))
       f.direction_forward()
@@ -133,10 +133,11 @@ class AnalyzeThread(threading.Thread):
     return
 
   def run(self):
-    while True:
+    analyze = threading.currentThread()
+    while getattr(analyze, "do_run", True) or not q.empty():
       if not q.empty():
         self.item = q.get()
-        self.in_flow
+        self.in_flow()
     return
 
   def in_flow(self):
@@ -207,6 +208,7 @@ def main():
   except KeyboardInterrupt:
     print("[*] Stop sniffing")
     sniffer.join()
+    analyze.do_run = False
     analyze.join()
     write_closed_flows(args.file)
 
