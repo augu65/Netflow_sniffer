@@ -5,14 +5,14 @@ Some code was used from [skyplabs](https://blog.skyplabs.net/2018/03/01/python-s
 The netflow sniffer uses scapy to sniff all of the packets on the given interface and convert them into netflows.
 These flows are then written to a csv file for more analysis
 
-###NOTE: Tested using python 3.9 on Windows 10
+### NOTE: Tested using python 3.9 on Windows 10
 
-##Requires 
-###pip libraries
+## Requires 
+### pip libraries
 * scapy
 * psutil
 
-###npcap
+### npcap
 To install npcap visit [here](https://nmap.org/npcap/#download)
 
 ## Run
