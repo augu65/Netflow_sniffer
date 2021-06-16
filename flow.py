@@ -41,4 +41,4 @@ class flow():
       self.dir = '<' + self.dir
       
   def print_flow(self):
-    return f"{self.start},{self.dur},{self.proto},{self.src},{self.dir},{self.dst},{self.tot_packets},{self.tot_bytes},{self.src_bytes}\n"
+    return f"{self.start},{self.dur},{self.proto},{self.src},{self.dir},{self.dst},{self.tot_packets},{self.tot_bytes},{self.src_bytes},\n"

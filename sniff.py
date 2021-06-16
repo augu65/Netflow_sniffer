@@ -109,9 +109,13 @@ def get_proto(proto):
     return proto
 
 def write_closed_flows(file):
-  keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes\n'
-  with open(file, 'w', newline='') as output_file:
-    output_file.write(keys)
+  k_flag = True
+  keys ='StartTime,Dur,Proto,SrcAddr,Dir,DstAddr,TotPkts,TotBytes,SrcBytes,Label\n'
+  if os.path.isfile(file):
+    k_flag = False
+  with open(file, 'a', newline='') as output_file:
+    if k_flag:
+      output_file.write(keys)
     for data in flows:
       if not data.fin and data.proto == 'TCP':
         if len(data.dir)>1:
