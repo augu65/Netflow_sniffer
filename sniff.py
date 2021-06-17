@@ -12,6 +12,7 @@ import queue
 import psutil
 from flow import flow
 
+
 # holds all the flows
 flows = []
 #holds a dictionary list of all the network protocols
@@ -23,10 +24,11 @@ BUF_SIZE = 100
 q = queue.Queue(BUF_SIZE)
 
 class Sniffer(threading.Thread):
-  def __init__(self, interface = None):
+  def __init__(self, interface = None, labels = False):
     super(Sniffer,self).__init__()
     self.interface = interface
     self.soceket = None
+    self.labels = labels
     self.stop_sniffer = threading.Event()
 
   def run(self):
@@ -78,8 +80,9 @@ class Sniffer(threading.Thread):
       proto = 'ARP'
     else:
       proto = get_proto(ip_layer.proto)
- 
     f = flow(ip_layer.src, ip_layer.dst,src_port,dst_port,proto,packet.time,len(packet))
+    if self.labels:
+      f.labels()
     if (not flag and 'TCP' in packet) or ('TCP' not in packet) or (fin_flag and 'TCP' in packet):
       if fin_flag:
         f.fin = True
@@ -88,7 +91,6 @@ class Sniffer(threading.Thread):
       f.source_bytes(len(packet))
       f.direction_forward()
       flows.append(f)
-
 
 def close_timeout_flows(flow):
   global global_timeout
@@ -128,6 +130,7 @@ def write_closed_flows(file):
         else:
           data.dir = "-" + data.dir[:1]
       output_file.write(str(data.print_flow()))
+
 
 class AnalyzeThread(threading.Thread):
   def __init__(self):
@@ -175,7 +178,6 @@ class AnalyzeThread(threading.Thread):
       self.item.direction_forward()
       flows.append(self.item)
 
-
 def main():
   global global_timeout
   global protocols
@@ -185,11 +187,11 @@ def main():
   parser.add_argument("--interface", help="select the network interface to sniff")
   parser.add_argument("--file", help="Enter the filename and path of where the flows will be stored", default="flows.csv")
   parser.add_argument("--timeout", help="set the timeout in Minutes for network connections", type=int, default=60)
+  parser.add_argument("--label",help="if provided will try to label flows to applications", action='store_true')
   args = parser.parse_args()
   global_timeout = args.timeout
-  
   if args.interface:
-    sniffer = Sniffer(interface=args.interface)
+    sniffer = Sniffer(interface=args.interface, labels=args.label)
   else:
     addrs = psutil.net_if_addrs()
     print("Please select a network interface:")
@@ -200,8 +202,7 @@ def main():
       interface =input('>')
       if interface not in addrs.keys():
         print("Invalid Interface")
-    sniffer = Sniffer(interface=interface)
-
+    sniffer = Sniffer(interface=interface,labels=args.label)
   analyze = AnalyzeThread()
   print("[*] Start sniffing...")
   sniffer.start()
