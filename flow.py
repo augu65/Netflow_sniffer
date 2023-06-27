@@ -52,6 +52,7 @@ class Flow:
         src = self.src + ":" + str(self.src_port)
         dst = self.dst + ":" + str(self.dst_port)
         result = os.popen('netstat -nab').read()
+        print(result)
         result = result.split("State", maxsplit=1)[1]
         for line in result.split("\n"):
             line = " ".join(re.split("\s+", line, flags=re.UNICODE)).strip()

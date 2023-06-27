@@ -182,11 +182,15 @@ class AnalyzeThread(threading.Thread):
             flows.append(self.item)
 
 
-def main():
+def read_protocols():
     global global_timeout
     global protocols
     with open('./protocols.json') as f:
         protocols = json.load(f)
+
+
+def start():
+    read_protocols()
     parser = argparse.ArgumentParser()
     parser.add_argument("--interface", help="select the network interface to sniff")
     parser.add_argument("--file", help="Enter the filename and path of where the flows will be stored",
@@ -198,14 +202,14 @@ def main():
     if arguments.interface:
         sniffer = Sniffer(interface=arguments.interface, labels=arguments.label)
     else:
-        addrs = psutil.net_if_addrs()
+        address = psutil.net_if_addrs()
         print("Please select a network interface:")
-        for key in addrs.keys():
+        for key in address.keys():
             print(key)
         interface = None
-        while interface not in addrs.keys():
+        while interface not in address.keys():
             interface = input('>')
-            if interface not in addrs.keys():
+            if interface not in address.keys():
                 print("Invalid Interface")
         sniffer = Sniffer(interface=interface, labels=arguments.label)
     analyze = AnalyzeThread()
@@ -224,4 +228,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    start()

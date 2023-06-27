@@ -1,0 +1,20 @@
+<html>
+<head>
+    <title>Network Sniffer</title>
+</head>
+<body>
+<h2>Network Sniffer</h2>
+<h4>Network interfaces:</h4>
+<ul>
+    {% for item in data %}
+    <li>{{item}}</li>
+    {% endfor %}
+</ul>
+<p>please enter the interface you would like to sniff?</p>
+<form method="POST">
+    <input type="text"   required="required" name="interface" placeholder="network interface">
+ <input type="submit" name="button" value="submit">
+</form>
+ <p style="color:red">{{ error_message }}</p>
+</body>
+</html>
