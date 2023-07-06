@@ -11,6 +11,7 @@ import argparse
 import queue
 import psutil
 from flow import Flow
+import socket
 
 # holds all the flows
 flows = []
@@ -202,10 +203,15 @@ def start():
     if arguments.interface:
         sniffer = Sniffer(interface=arguments.interface, labels=arguments.label)
     else:
+
         address = psutil.net_if_addrs()
+        hostname = socket.gethostname()
+        IPAddr = socket.gethostbyname(hostname)
         print("Please select a network interface:")
         for key in address.keys():
-            print(key)
+            for y in address[key]:
+                if IPAddr in y[1]:
+                    print(key)
         interface = None
         while interface not in address.keys():
             interface = input('>')

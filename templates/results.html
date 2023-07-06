@@ -4,10 +4,50 @@
     <meta charset="UTF-8">
     <title>Results</title>
 </head>
+<style>
+table{
+border-collapse: collapse;
+    margin: 25px 0;
+    font-size: 0.9em;
+    font-family: sans-serif;
+    min-width: 400px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+ th,
+ td {
+    padding: 12px 15px;
+}
+tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+</style>
 <body>
-  {% for item in flows %}
-    <p>{{item}}</p>
+<div align="center">
+    <h1><u>Results</u></h1>
+    <table>
+        <tr>
+        {% for label in headers %}
+             <th> {{label}} </th>
+        {% endfor %}
+        </tr>
+        {% for flow in flows %}
+        <tr>
+            {% for value in flow %}
+            <td> {{value}} </td>
+            {% endfor %}
+        </tr>
     </break>
     {% endfor %}
+    </table>
+</div>
 </body>
 </html>

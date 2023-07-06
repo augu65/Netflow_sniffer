@@ -1,10 +1,16 @@
 from flask import Flask, render_template, request
 import psutil
 from sniff import Sniffer, AnalyzeThread, write_closed_flows, read_protocols
-import signal
+import socket
 app = Flask(__name__)
 address = psutil.net_if_addrs()
-data = address.keys()
+hostname = socket.gethostname()
+IPAddr = socket.gethostbyname(hostname)
+data = []
+for x in address.keys():
+    for y in address[x]:
+        if IPAddr in y[1]:
+            data.append(x)
 read_protocols()
 sniffer =Sniffer(interface="", labels="store_true")
 analyze = AnalyzeThread()
@@ -15,6 +21,7 @@ def home():
 
 @app.route('/', methods=['POST'])
 def my_form_post():
+    print(request.form)
     if "interface" in request.form:
         interface = request.form['interface']
         if interface in data:
@@ -30,9 +37,15 @@ def my_form_post():
         sniffer.join()
         analyze.do_run = False
         analyze.join()
-        write_closed_flows("flow2.csv")
-        flows = read_data()
-        return render_template('results.html', flows=flows)
+        write_closed_flows("flow4.csv")
+        flow_data = read_data()
+        headers = flow_data[0].split(',')
+        flow_data.pop(0)
+        flows = []
+        for flow in flow_data:
+            flow = flow.replace("\n", "")
+            flows.append(flow.split(','))
+        return render_template('results.html', headers=headers, flows=flows)
 
 
 def read_data():

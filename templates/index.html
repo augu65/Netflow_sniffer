@@ -2,19 +2,24 @@
 <head>
     <title>Network Sniffer</title>
 </head>
+<style>
+.button {
+    width: 30%;
+    height: 10%;
+    margin-bottom: 1%;
+}
+</style>
 <body>
+<div align="center">
 <h2>Network Sniffer</h2>
+<p>please select the interface you would like to sniff?</p>
 <h4>Network interfaces:</h4>
-<ul>
+    <form method="POST">
     {% for item in data %}
-    <li>{{item}}</li>
+    <button class="button" type="submit" name='interface' value="{{item}}">{{item}}</button></br>
     {% endfor %}
-</ul>
-<p>please enter the interface you would like to sniff?</p>
-<form method="POST">
-    <input type="text"   required="required" name="interface" placeholder="network interface">
- <input type="submit" name="button" value="submit">
-</form>
- <p style="color:red">{{ error_message }}</p>
+    </form>
+</div>
+
 </body>
 </html>
