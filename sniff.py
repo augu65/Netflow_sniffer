@@ -126,11 +126,13 @@ def write_closed_flows(file):
                     data.dir = data.dir[:1] + "?" + data.dir[1:]
                 else:
                     data.dir = "?" + data.dir[:1]
+                data.dir = data.dir.replace('??', '?')
             else:
                 if len(data.dir) > 1:
                     data.dir = data.dir[:1] + "-" + data.dir[1:]
                 else:
                     data.dir = "-" + data.dir[:1]
+                data.dir = data.dir.replace('--','-')
             output_file.write(str(data.print_flow()))
 
 

@@ -33,6 +33,9 @@ tbody tr:nth-of-type(even) {
 <body>
 <div align="center">
     <h1><u>Results</u></h1>
+    <form method="POST">
+        <button class="button" type="submit" name="interface" value="Wi-Fi">Restart sniffing</button>
+    </form>
     <table>
         <tr>
         {% for label in headers %}

@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <title>Interface: {{interface}}</title>
 </head>
+<style>
+.button {
+    width: 30%;
+    height: 10%;
+    margin-bottom: 1%;
+}
+
+</style>
 <body>
 <div align="center">
 <H1>{{interface}} is being sniffed</H1>
 
 <form method="POST">
- <input type="submit" name="sniffing_stop" value="End Sniffing">
+    <button class="button" type="submit" name="sniffing_stop" value={{interface}}>Stop Sniffing</button>
 </form>
 </div>
 </body>
